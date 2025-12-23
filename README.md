@@ -13,7 +13,7 @@ Stores customer and admin information.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| user_id | INT | Primary key, unique identifier |
+| user_id | UUID | Primary key, unique identifier |
 | name | VARCHAR | User's full name |
 | email | VARCHAR | User's email address |
 | phone | VARCHAR | Contact phone number |
@@ -24,7 +24,7 @@ Contains information about available vehicles for rent.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| vehicle_id | INT | Primary key, unique identifier |
+| vehicle_id | UUID | Primary key, unique identifier |
 | name | VARCHAR | Vehicle name/brand |
 | type | VARCHAR | Vehicle type (car/bike/truck) |
 | model | VARCHAR | Model year |
@@ -37,9 +37,9 @@ Records all vehicle booking transactions.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| booking_id | INT | Primary key, unique identifier |
-| user_id | INT | Foreign key to Users table |
-| vehicle_id | INT | Foreign key to Vehicles table |
+| booking_id | UUID | Primary key, unique identifier |
+| user_id | UUID | Foreign key to Users table |
+| vehicle_id | UUID | Foreign key to Vehicles table |
 | start_date | DATE | Booking start date |
 | end_date | DATE | Booking end date |
 | status | VARCHAR | Booking status (completed/confirmed/pending) |
@@ -86,16 +86,11 @@ Retrieve comprehensive booking information by combining data from multiple table
 ### Solution
 
 ```sql
-SELECT
-    b.booking_id,
-    u.name AS customer_name,
-    v.name AS vehicle_name,
-    b.start_date,
-    b.end_date,
-    b.status 
-FROM bookings AS b 
-INNER JOIN users AS u ON b.user_id = u.user_id
-INNER JOIN vehicles AS v ON b.vehicle_id = v.vehicle_id;
+select
+  b.booking_id,u.name as customer_name,v.name as vehicle_name,b.start_date,b.end_date,b.status 
+  from bookings as b 
+  inner join users as u on b.user_id=u.user_id
+  inner join vehicles as v on b.vehicle_id=v.vehicle_id;
 ```
 
 ### Explanation
@@ -123,7 +118,7 @@ INNER JOIN vehicles AS v ON b.vehicle_id = v.vehicle_id;
 - If a booking references a non-existent user or vehicle, it will be excluded from results
 - This maintains data integrity in the output
 
-### Expected Output
+### Output
 
 | booking_id | customer_name | vehicle_name | start_date | end_date | status |
 |------------|---------------|--------------|------------|----------|---------|
@@ -143,20 +138,10 @@ Identify all vehicles in the system that have never been booked by any customer.
 ### Solution
 
 ```sql
-SELECT 
-    vehicle_id,
-    name,
-    type,
-    model,
-    registration_number,
-    rental_price,
-    status
-FROM vehicles
-WHERE NOT EXISTS (
-    SELECT * 
-    FROM bookings 
-    WHERE vehicle_id = vehicles.vehicle_id
-);
+select 
+  vehicle_id,name,type,model,registration_number,rental_price,status
+  from vehicles
+  where not exists( select * from bookings where vehicle_id=vehicles.vehicle_id);
 ```
 
 ### Explanation
@@ -178,28 +163,12 @@ WHERE NOT EXISTS (
    - Returns vehicles where NO bookings exist
    - Efficiently filters out vehicles that have been booked at least once
 
-**Why Use EXISTS?**
-- **Performance**: EXISTS stops searching as soon as it finds the first match
-- **Readability**: The logic is clear - "give me vehicles that do NOT have any bookings"
-- **Correlated Subquery**: The subquery references the outer query's table (vehicles.vehicle_id), making it check each vehicle individually
-
-**Alternative Approaches:**
-You could achieve the same result with a LEFT JOIN, but EXISTS is generally more efficient for this "absence check" pattern:
-```sql
--- Alternative (less efficient):
-SELECT v.* FROM vehicles v
-LEFT JOIN bookings b ON v.vehicle_id = b.vehicle_id
-WHERE b.booking_id IS NULL;
-```
-
-### Expected Output
+### Output
 
 | vehicle_id | name | type | model | registration_number | rental_price | status |
 |------------|------|------|-------|---------------------|--------------|--------|
 | 3 | Yamaha R15 | bike | 2023 | GHI-789 | 30 | available |
 | 4 | Ford F-150 | truck | 2020 | JKL-012 | 100 | maintenance |
-
-**Business Insight**: Both the Yamaha R15 bike and Ford F-150 truck have never been booked, indicating potential opportunities for targeted promotions or pricing strategies.
 
 ---
 
@@ -212,9 +181,7 @@ Retrieve all vehicles of a specific type (e.g., "car") that are currently availa
 ### Solution
 
 ```sql
-SELECT * 
-FROM vehicles 
-WHERE type = 'car' AND status = 'available';
+select  * from vehicles where type='car' and status='available';
 ```
 
 ### Explanation
@@ -228,37 +195,11 @@ WHERE type = 'car' AND status = 'available';
    - `status = 'available'`: Filters to only show vehicles currently available for rental
    - `AND` operator: Both conditions must be TRUE for a row to be included
 
-**Filter Logic:**
-```
-Result Set = All Vehicles WHERE (type is 'car') AND (status is 'available')
-```
-
-**Why This Approach?**
-- **Simple and Direct**: Straightforward filtering using basic WHERE clause
-- **Indexed Columns**: Both `type` and `status` are likely indexed columns for performance
-- **Flexible**: Easy to modify for different vehicle types or statuses
-
-**Variations for Different Needs:**
-
-```sql
--- For bikes only:
-SELECT * FROM vehicles WHERE type = 'bike' AND status = 'available';
-
--- For any available vehicle:
-SELECT * FROM vehicles WHERE status = 'available';
-
--- For cars under a certain price:
-SELECT * FROM vehicles 
-WHERE type = 'car' AND status = 'available' AND rental_price < 60;
-```
-
-### Expected Output
+### Output
 
 | vehicle_id | name | type | model | registration_number | rental_price | status |
 |------------|------|------|-------|---------------------|--------------|--------|
 | 1 | Toyota Corolla | car | 2022 | ABC-123 | 50 | available |
-
-**Business Context**: Only the Toyota Corolla meets both criteria (car type and available status). The Honda Civic, while a car, is currently rented and therefore not included in the results.
 
 ---
 
@@ -271,13 +212,15 @@ Identify vehicles that are frequently booked by finding the total number of book
 ### Solution
 
 ```sql
-SELECT
-    v.name AS vehicle_name,
-    COUNT(v.vehicle_id) AS total_bookings
-FROM bookings AS b
-LEFT JOIN vehicles AS v ON b.vehicle_id = v.vehicle_id
-GROUP BY v.name
-HAVING COUNT(v.vehicle_id) > 2;
+select
+    v.name as vehicle_name,
+    count(v.vehicle_id) as total_bookings
+from
+    bookings as b
+left join
+    vehicles as v on b.vehicle_id = v.vehicle_id
+group by
+    v.name having count(v.vehicle_id) > 2;
 ```
 
 ### Explanation
@@ -322,16 +265,6 @@ HAVING COUNT(v.vehicle_id) > 2;
 - It ensures all bookings are counted even if there's data integrity issue
 - In a well-maintained database, both would produce the same results
 
-**HAVING vs WHERE:**
-- **WHERE**: Filters individual rows BEFORE grouping
-  ```sql
-  WHERE status = 'completed'  -- Filter bookings before counting
-  ```
-- **HAVING**: Filters groups AFTER aggregation
-  ```sql
-  HAVING COUNT(*) > 2  -- Filter vehicles after counting bookings
-  ```
-
 **Step-by-Step Execution:**
 
 1. **Join Phase**: Combine bookings with vehicle names
@@ -360,7 +293,7 @@ HAVING COUNT(v.vehicle_id) > 2;
    Toyota Corolla: 1 booking ✗ (excluded)
    ```
 
-### Expected Output
+### Output
 
 | vehicle_name | total_bookings |
 |--------------|----------------|
@@ -368,3 +301,4 @@ HAVING COUNT(v.vehicle_id) > 2;
 
 
 ---
+
