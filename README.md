@@ -14,10 +14,12 @@ Stores customer and admin information.
 | Column | Type | Description |
 |--------|------|-------------|
 | user_id | UUID | Primary key, unique identifier |
+| role | ENUM | User role (Customer/Admin) |
 | name | VARCHAR | User's full name |
-| email | VARCHAR | User's email address |
+| email | VARCHAR | User's email address, unique identifier |
 | phone | VARCHAR | Contact phone number |
-| role | VARCHAR | User role (Customer/Admin) |
+| password | VARCHAR | User's password |
+
 
 ### Vehicles Table
 Contains information about available vehicles for rent.
@@ -26,11 +28,11 @@ Contains information about available vehicles for rent.
 |--------|------|-------------|
 | vehicle_id | UUID | Primary key, unique identifier |
 | name | VARCHAR | Vehicle name/brand |
-| type | VARCHAR | Vehicle type (car/bike/truck) |
+| type | ENUM | Vehicle type (car/bike/truck) |
 | model | VARCHAR | Model year |
 | registration_number | VARCHAR | Vehicle registration plate |
-| rental_price | DECIMAL | Daily rental price |
-| status | VARCHAR | Current status (available/rented/maintenance) |
+| rental_price | INT | Daily rental price |
+| status | ENUM | Current status (available/rented/maintenance) |
 
 ### Bookings Table
 Records all vehicle booking transactions.
@@ -42,8 +44,8 @@ Records all vehicle booking transactions.
 | vehicle_id | UUID | Foreign key to Vehicles table |
 | start_date | DATE | Booking start date |
 | end_date | DATE | Booking end date |
-| status | VARCHAR | Booking status (completed/confirmed/pending) |
-| total_cost | DECIMAL | Total booking cost |
+| status | ENUM | Booking status (completed/confirmed/pending) |
+| total_cost | INT | Total booking cost |
 
 ---
 
@@ -301,4 +303,5 @@ group by
 
 
 ---
+
 
